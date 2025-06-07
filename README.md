@@ -77,4 +77,4 @@ Feel free to reach out if you'd like to see the app live or want to learn more a
 
 _This repo is part of my tech portfolio for college admissions._  
 
-## 📸 Screenshots
+
