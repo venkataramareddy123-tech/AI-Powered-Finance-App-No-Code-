@@ -1,54 +1,33 @@
-# Welcome to your Lovable project
+# 💸 AI Finance App (No-Code Prototype using Lovable + ChatGPT)
 
-## Project info
+This is a **work-in-progress** personal finance app prototype developed using **Lovable** (a no-code app builder) with the support of **ChatGPT** for design, logic, and prompts.
 
-**URL**: https://lovable.dev/projects/2042fbec-e205-4846-92ba-2e61591ba747
+The app aims to **help users make smarter financial decisions** by using AI to analyze spending habits, automate regular expenses, and optimize budgets — all without writing traditional code.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚧 Status: In Progress
 
-**Use Lovable**
+While the app’s front-end and back-end have been mostly completed, there are **minor issues and unfinished logic in the backend** that are currently being debugged.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2042fbec-e205-4846-92ba-2e61591ba747) and start prompting.
+The main focus at this stage is showcasing:
+- The concept
+- User experience (UX)
+- Visual design
+- Prompt-engineered logic
+- AI integration for financial decision-making
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🧠 Key Features (Planned and Prototyped)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- 📊 Expense tracking with category breakdown
+- 🤖 AI-powered financial insights and saving suggestions
+- 💡 Smart reminders for bill payments
+- 🌘 Dark mode toggle for modern UI/UX
+- 📅 Daily, weekly, and monthly budget analytics
+- 🛠️ Firebase backend integration via Lovable
+- 🎯 Clean, responsive UI designed using prompt-based styling
 
 ## What technologies are used for this project?
 
@@ -60,14 +39,42 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## 📸 Screenshots and video
+https://drive.google.com/drive/folders/1_1X_HbGNOPmFR8dfk3elOLlaDjd3r-9o?usp=sharing
 
-Simply open [Lovable](https://lovable.dev/projects/2042fbec-e205-4846-92ba-2e61591ba747) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 📄 Prompt Engineering
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+All UI, backend logic, colors, typography, and layout ideas were created through **ChatGPT prompts**. You can view the actual prompts and results inside:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+📁 `Prompts/prompts-used.txt`
+
+---
+
+## 🎓 What I Learned
+
+- How to design and build full-stack apps using **no-code platforms**
+- Creating clean, modern UI with the help of **AI**
+- Structuring **backend workflows** without traditional coding
+- Debugging no-code logic systems using prompt feedback loops
+
+---
+
+## 🚀 Next Steps
+
+- ✅ Finalize backend logic (resolve minor bugs)
+- ✅ Polish the UI with animations and transitions
+- ⏳ Connect real-time AI suggestions to user data
+- ✅ Add visual charts using no-code data visualization
+
+---
+
+## 📬 Contact / Resume
+
+Feel free to reach out if you'd like to see the app live or want to learn more about how it was built.
+
+_This repo is part of my tech portfolio for college admissions._  
+
+## 📸 Screenshots
