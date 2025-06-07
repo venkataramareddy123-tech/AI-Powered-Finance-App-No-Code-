@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useExpenses } from '@/hooks/useExpenses';
+import { toast } from '@/components/ui/use-toast';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -14,10 +16,16 @@ interface ExpenseModalProps {
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
-  const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const { addExpense } = useExpenses();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    category: '',
+    description: '',
+    is_recurring: false,
+    is_necessary: true,
+    date: new Date().toISOString().split('T')[0]
+  });
 
   const categories = [
     { value: 'food', label: 'Food & Dining', icon: '🍕' },
@@ -28,20 +36,56 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
     { value: 'health', label: 'Health & Fitness', icon: '💊' },
   ];
 
-  const paymentMethods = [
-    { value: 'upi', label: 'UPI', icon: <Smartphone className="w-4 h-4" /> },
-    { value: 'card', label: 'Card', icon: <CreditCard className="w-4 h-4" /> },
-    { value: 'cash', label: 'Cash', icon: <Banknote className="w-4 h-4" /> },
-  ];
+  const handleSave = async () => {
+    if (!formData.amount || !formData.category) {
+      toast({
+        title: "Please fill required fields",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleSave = () => {
-    // Add expense logic here
-    console.log('Saving expense:', { amount, category, notes, paymentMethod });
-    onClose();
-    setAmount('');
-    setCategory('');
-    setNotes('');
-    setPaymentMethod('');
+    setLoading(true);
+    const { error } = await addExpense({
+      amount: parseFloat(formData.amount),
+      category: formData.category,
+      description: formData.description,
+      is_recurring: formData.is_recurring,
+      is_necessary: formData.is_necessary,
+      date: formData.date
+    });
+
+    if (!error) {
+      onClose();
+      setFormData({
+        amount: '',
+        category: '',
+        description: '',
+        is_recurring: false,
+        is_necessary: true,
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+    setLoading(false);
+  };
+
+  const getSuggestedCategory = (description: string) => {
+    const desc = description.toLowerCase();
+    if (desc.includes('food') || desc.includes('restaurant') || desc.includes('cafe')) return 'food';
+    if (desc.includes('uber') || desc.includes('taxi') || desc.includes('bus')) return 'transport';
+    if (desc.includes('shop') || desc.includes('amazon') || desc.includes('flipkart')) return 'shopping';
+    if (desc.includes('bill') || desc.includes('electricity') || desc.includes('water')) return 'bills';
+    return '';
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setFormData(prev => ({ ...prev, description: value }));
+    if (!formData.category) {
+      const suggested = getSuggestedCategory(value);
+      if (suggested) {
+        setFormData(prev => ({ ...prev, category: suggested }));
+      }
+    }
   };
 
   return (
@@ -64,24 +108,36 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
         <div className="space-y-6 pt-4">
           {/* Amount Input */}
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-white font-medium">Amount</Label>
+            <Label htmlFor="amount" className="text-white font-medium">Amount *</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary font-bold text-lg">₹</span>
               <Input
                 id="amount"
                 type="number"
                 placeholder="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                 className="pl-8 bg-white/5 border-white/20 text-white placeholder-gray-400 text-lg font-bold focus:border-primary"
               />
             </div>
           </div>
 
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-white font-medium">Description</Label>
+            <Input
+              id="description"
+              placeholder="What did you buy?"
+              value={formData.description}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              className="bg-white/5 border-white/20 text-white placeholder-gray-400"
+            />
+          </div>
+
           {/* Category Selection */}
           <div className="space-y-2">
-            <Label className="text-white font-medium">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Label className="text-white font-medium">Category *</Label>
+            <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
               <SelectTrigger className="bg-white/5 border-white/20 text-white">
                 <SelectValue placeholder="Choose category" />
               </SelectTrigger>
@@ -98,48 +154,23 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
             </Select>
           </div>
 
-          {/* Payment Method */}
+          {/* Date */}
           <div className="space-y-2">
-            <Label className="text-white font-medium">Payment Method</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {paymentMethods.map((method) => (
-                <Button
-                  key={method.value}
-                  variant={paymentMethod === method.value ? "default" : "outline"}
-                  onClick={() => setPaymentMethod(method.value)}
-                  className={`p-3 ${
-                    paymentMethod === method.value
-                      ? 'bg-primary text-white'
-                      : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    {method.icon}
-                    <span className="text-xs">{method.label}</span>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-white font-medium">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Add a note..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="bg-white/5 border-white/20 text-white placeholder-gray-400 resize-none"
-              rows={3}
+            <Label htmlFor="date" className="text-white font-medium">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              className="bg-white/5 border-white/20 text-white"
             />
           </div>
 
           {/* AI Suggestion */}
-          {category === 'food' && (
+          {formData.category === 'food' && formData.description && (
             <div className="bg-primary/10 p-3 rounded-lg border border-primary/20 animate-fade-in">
               <p className="text-sm text-primary">
-                🤖 <span className="font-medium">AI Suggestion:</span> Looks like Food. Want to auto-tag as "Lunch"?
+                🤖 <span className="font-medium">AI Suggestion:</span> Looks like food expenses. Consider setting a daily food budget!
               </p>
             </div>
           )}
@@ -147,10 +178,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
           {/* Save Button */}
           <Button
             onClick={handleSave}
-            disabled={!amount || !category}
+            disabled={loading || !formData.amount || !formData.category}
             className="w-full bg-neon-glow hover:bg-primary text-white font-bold py-3 rounded-xl neon-glow transition-all duration-200"
           >
-            Save Expense
+            {loading ? 'Saving...' : 'Save Expense'}
           </Button>
         </div>
       </DialogContent>
