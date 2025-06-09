@@ -4,48 +4,39 @@ import { PlusCircle, TrendingUp, AlertTriangle, Target, Mic, Brain, Zap, Eye, Su
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useExpenses } from '@/hooks/useExpenses';
-import { useGoals } from '@/hooks/useGoals';
-import { useAISuggestions } from '@/hooks/useAISuggestions';
-import { useAuth } from '@/hooks/useAuth';
-import ExpenseModal from './ExpenseModal';
-import VoiceExpenseModal from './VoiceExpenseModal';
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { expenses, loading: expensesLoading } = useExpenses();
-  const { goals, loading: goalsLoading } = useGoals();
-  const { suggestions, loading: suggestionsLoading } = useAISuggestions();
-  
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [aiActive, setAiActive] = useState(false);
-  const [spentAmount, setSpentAmount] = useState(0);
+  const [spentAmount, setSpentAmount] = useState(1250);
   const [emotionState, setEmotionState] = useState('good');
   const [darkMode, setDarkMode] = useState(true);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [dailyCapsuleIndex, setDailyCapsuleIndex] = useState(0);
 
-  // Calculate real spending data
-  const todayExpenses = expenses.filter(expense => {
-    const today = new Date().toISOString().split('T')[0];
-    return expense.date === today;
-  });
+  // Mock data for UI display
+  const mockExpenses = [
+    { category: 'food', amount: 450, date: new Date().toISOString().split('T')[0] },
+    { category: 'transport', amount: 300, date: new Date().toISOString().split('T')[0] },
+    { category: 'shopping', amount: 500, date: new Date().toISOString().split('T')[0] },
+  ];
 
-  const thisMonthExpenses = expenses.filter(expense => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const expenseDate = new Date(expense.date);
-    return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-  });
+  const mockGoals = [
+    { id: 1, goal_title: 'Emergency Fund', target_amount: 50000, saved_amount: 25000, is_completed: false },
+    { id: 2, goal_title: 'Vacation', target_amount: 30000, saved_amount: 18000, is_completed: false },
+  ];
 
-  const totalSpentToday = todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const totalSpentThisMonth = thisMonthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const mockSuggestions = [
+    { suggestion_text: "You're doing great with your spending! Consider setting aside 20% more for savings." }
+  ];
+
+  const totalSpentToday = mockExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalSpentThisMonth = 12500;
 
   // Calculate spending by category
-  const spendingByCategory = thisMonthExpenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + Number(expense.amount);
+  const spendingByCategory = mockExpenses.reduce((acc, expense) => {
+    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
     return acc;
   }, {} as Record<string, number>);
 
@@ -55,29 +46,23 @@ const Dashboard = () => {
     color: getCategoryColor(category),
     icon: getCategoryIcon(category),
     percentage: (amount / totalSpentThisMonth) * 100
-  })).slice(0, 4);
+  }));
 
-  // Get active goals progress
-  const activeGoals = goals.filter(goal => !goal.is_completed);
-  const totalGoalProgress = activeGoals.length > 0 
-    ? activeGoals.reduce((sum, goal) => sum + (goal.saved_amount / goal.target_amount), 0) / activeGoals.length * 100
-    : 0;
-
-  // Daily capsules with real data
+  // Daily capsules with mock data
   const dailyCapsules = [
     { 
       day: 'Today', 
-      category: getTopCategory(todayExpenses) || 'None', 
+      category: 'Food', 
       trend: `₹${totalSpentToday}`, 
-      tip: totalSpentToday < 500 ? 'Great spending control!' : 'Watch your budget!', 
-      emoji: totalSpentToday < 500 ? '😊' : '🤔', 
-      mood: totalSpentToday < 500 ? 'happy' : 'neutral' 
+      tip: 'Great spending control!', 
+      emoji: '😊', 
+      mood: 'happy' 
     },
     { 
       day: 'This Month', 
       category: 'Total', 
       trend: `₹${totalSpentThisMonth}`, 
-      tip: activeGoals.length > 0 ? `${activeGoals.length} active goals` : 'Set a savings goal!', 
+      tip: '2 active goals', 
       emoji: '📊', 
       mood: 'neutral' 
     }
@@ -85,28 +70,10 @@ const Dashboard = () => {
 
   // Animate spending counter
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSpentAmount(prev => {
-        if (prev < totalSpentToday) {
-          return prev + Math.ceil((totalSpentToday - prev) / 10);
-        }
-        clearInterval(timer);
-        return totalSpentToday;
-      });
-    }, 50);
-
-    return () => clearInterval(timer);
-  }, [totalSpentToday]);
-
-  // Emotion state based on spending
-  useEffect(() => {
-    if (totalSpentToday > 1000) {
-      setEmotionState('alert');
-    } else if (totalSpentToday > 600) {
-      setEmotionState('warning');
-    } else {
-      setEmotionState('good');
-    }
+    const timer = setTimeout(() => {
+      setSpentAmount(totalSpentToday);
+    }, 500);
+    return () => clearTimeout(timer);
   }, [totalSpentToday]);
 
   // Activate AI periodically
@@ -115,7 +82,6 @@ const Dashboard = () => {
       setAiActive(true);
       setTimeout(() => setAiActive(false), 2000);
     }, 8000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -141,15 +107,6 @@ const Dashboard = () => {
       health: '💊'
     };
     return icons[category.toLowerCase()] || '💰';
-  }
-
-  function getTopCategory(expenseList: any[]) {
-    if (expenseList.length === 0) return null;
-    const categoryCounts = expenseList.reduce((acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + 1;
-      return acc;
-    }, {});
-    return Object.entries(categoryCounts).sort(([,a], [,b]) => (b as number) - (a as number))[0][0];
   }
 
   const getEmotionStyles = (emotion: string) => {
@@ -179,25 +136,8 @@ const Dashboard = () => {
     document.documentElement.classList.toggle('light-mode');
   };
 
-  const handleQuickMenuToggle = () => {
-    setQuickMenuOpen(!quickMenuOpen);
-  };
-
-  const isLoading = expensesLoading || goalsLoading || suggestionsLoading;
-
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'bg-neubrutalist-bg' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'} p-4 space-y-6 pb-20`}>
-        <Skeleton className="h-20 w-full bg-white/10" />
-        <Skeleton className="h-32 w-full bg-white/10" />
-        <Skeleton className="h-40 w-full bg-white/10" />
-        <Skeleton className="h-32 w-full bg-white/10" />
-      </div>
-    );
-  }
-
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'bg-neubrutalist-bg' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'} particle-bg p-4 space-y-6 pb-20 font-inter ${emotionState === 'good' ? 'particle-coins' : ''}`}>
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'bg-neubrutalist-bg' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'} particle-bg p-4 space-y-6 pb-20 font-inter`}>
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
@@ -252,7 +192,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* AI Assistant Card with Real Data */}
+      {/* AI Assistant Card */}
       <Card className={`glass-card-intense border-primary/30 animate-slide-up magnetic-hover card-reflection ${aiActive ? 'animate-pulse-glow' : ''} ${getEmotionStyles(emotionState)}`}>
         <CardHeader className="pb-3">
           <CardTitle className={`text-xl font-bold ${darkMode ? 'text-primary' : 'text-indigo-600'} flex items-center gap-3`}>
@@ -277,99 +217,94 @@ const Dashboard = () => {
                   {spentAmount.toLocaleString()}
                 </span> today
               </p>
-              <p className={`${emotionState === 'good' ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : (darkMode ? 'text-yellow-400' : 'text-yellow-600')} font-medium text-lg animate-slide-up`}>
-                {emotionState === 'good' ? "Great spending control! 🎉" : emotionState === 'warning' ? "Getting close to budget 🤔" : "Budget exceeded! Time to save 😅"}
+              <p className={`${darkMode ? 'text-emerald-400' : 'text-emerald-600'} font-medium text-lg animate-slide-up`}>
+                Great spending control! 🎉
               </p>
             </div>
             <div className={`bg-gradient-to-r ${getEmotionStyles(emotionState)} p-4 rounded-xl border transition-all duration-500 magnetic-hover`}>
               <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-slate-600'}`}>
                 <span className="text-2xl mr-2">🤖</span>
                 <span className={`${darkMode ? 'text-primary' : 'text-indigo-600'} font-medium`}>AI Insight:</span> 
-                {suggestions.length > 0 ? suggestions[0].suggestion_text : "Looking good! Keep tracking your expenses."}
+                {mockSuggestions[0].suggestion_text}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Real Spending Chart */}
-      {spendingData.length > 0 && (
-        <Card className="glass-card border-white/20 animate-slide-up magnetic-hover card-reflection" style={{ animationDelay: '0.1s' }}>
-          <CardHeader>
-            <CardTitle className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
-              <TrendingUp className={`w-6 h-6 ${darkMode ? 'text-accent' : 'text-emerald-500'} animate-bounce-gentle`} />
-              This Month's Spending Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {spendingData.map((item, index) => (
-                <div 
-                  key={item.category} 
-                  className="flex items-center justify-between animate-stagger-left motion-blur magnetic-hover ripple-effect"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl animate-bounce-gentle" style={{ animationDelay: `${index * 0.2}s` }}>
-                      {item.icon}
-                    </span>
-                    <span className={`${darkMode ? 'text-white' : 'text-slate-700'} font-medium`}>{item.category}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-28 relative">
-                      <Progress 
-                        value={item.percentage} 
-                        className={`h-3 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse opacity-60"></div>
-                    </div>
-                    <span className={`${darkMode ? 'text-white gradient-text' : 'text-slate-700'} font-bold text-right w-20`}>₹{item.amount.toLocaleString()}</span>
-                  </div>
+      {/* Spending Chart */}
+      <Card className="glass-card border-white/20 animate-slide-up magnetic-hover card-reflection" style={{ animationDelay: '0.1s' }}>
+        <CardHeader>
+          <CardTitle className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
+            <TrendingUp className={`w-6 h-6 ${darkMode ? 'text-accent' : 'text-emerald-500'} animate-bounce-gentle`} />
+            This Month's Spending Breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {spendingData.map((item, index) => (
+              <div 
+                key={item.category} 
+                className="flex items-center justify-between animate-stagger-left motion-blur magnetic-hover ripple-effect"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl animate-bounce-gentle" style={{ animationDelay: `${index * 0.2}s` }}>
+                    {item.icon}
+                  </span>
+                  <span className={`${darkMode ? 'text-white' : 'text-slate-700'} font-medium`}>{item.category}</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex items-center gap-3">
+                  <div className="w-28 relative">
+                    <Progress 
+                      value={item.percentage} 
+                      className={`h-3 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse opacity-60"></div>
+                  </div>
+                  <span className={`${darkMode ? 'text-white gradient-text' : 'text-slate-700'} font-bold text-right w-20`}>₹{item.amount.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Goals Progress */}
-      {activeGoals.length > 0 && (
-        <Card className="glass-card border-white/20 animate-slide-up magnetic-hover card-reflection" style={{ animationDelay: '0.2s' }}>
-          <CardHeader>
-            <CardTitle className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
-              <Target className={`w-6 h-6 ${darkMode ? 'text-fintech-lime' : 'text-emerald-500'} animate-pulse-glow`} />
-              Savings Goals Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {activeGoals.slice(0, 3).map((goal, index) => (
-                <div key={goal.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={`${darkMode ? 'text-white' : 'text-slate-700'} font-medium`}>{goal.goal_title}</span>
-                    <span className={`${darkMode ? 'text-primary' : 'text-indigo-600'} font-bold`}>
-                      ₹{goal.saved_amount.toLocaleString()} / ₹{goal.target_amount.toLocaleString()}
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(goal.saved_amount / goal.target_amount) * 100} 
-                    className={`h-2 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}
-                  />
+      <Card className="glass-card border-white/20 animate-slide-up magnetic-hover card-reflection" style={{ animationDelay: '0.2s' }}>
+        <CardHeader>
+          <CardTitle className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
+            <Target className={`w-6 h-6 ${darkMode ? 'text-fintech-lime' : 'text-emerald-500'} animate-pulse-glow`} />
+            Savings Goals Progress
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {mockGoals.map((goal, index) => (
+              <div key={goal.id} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className={`${darkMode ? 'text-white' : 'text-slate-700'} font-medium`}>{goal.goal_title}</span>
+                  <span className={`${darkMode ? 'text-primary' : 'text-indigo-600'} font-bold`}>
+                    ₹{goal.saved_amount.toLocaleString()} / ₹{goal.target_amount.toLocaleString()}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <Progress 
+                  value={(goal.saved_amount / goal.target_amount) * 100} 
+                  className={`h-2 ${darkMode ? 'bg-white/10' : 'bg-slate-200'}`}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Enhanced Floating Action Buttons */}
+      {/* Floating Action Buttons */}
       <div className="fixed bottom-20 right-4 flex flex-col gap-4">
         <Button
           onClick={() => setIsVoiceModalOpen(true)}
           className={`w-16 h-16 rounded-full bg-gradient-to-r ${darkMode ? 'from-purple-500 via-pink-500 to-purple-600' : 'from-purple-400 via-pink-400 to-purple-500'} hover:scale-110 shadow-2xl magnetic-hover magnetic-glow animate-bounce-gentle ripple-effect`}
         >
           <Mic className="w-7 h-7 text-white" />
-          <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${darkMode ? 'from-purple-400 to-pink-400' : 'from-purple-300 to-pink-300'} opacity-30 animate-pulse`}></div>
         </Button>
         
         <Button
@@ -377,41 +312,15 @@ const Dashboard = () => {
           className={`w-18 h-18 rounded-full bg-gradient-to-r ${darkMode ? 'from-primary via-accent to-fintech-lime text-black' : 'from-indigo-500 via-blue-500 to-emerald-500 text-white'} hover:scale-110 shadow-2xl magnetic-glow animate-bounce-gentle magnetic-hover ripple-effect brutal-shadow`}
         >
           <PlusCircle className="w-8 h-8" />
-          <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${darkMode ? 'from-primary to-accent' : 'from-indigo-400 to-emerald-400'} opacity-40 animate-pulse`}></div>
         </Button>
       </div>
 
-      {/* Quick Access Radial Menu */}
-      {quickMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in" onClick={handleQuickMenuToggle}>
-          <div className="absolute bottom-32 right-4 animate-radial-reveal">
-            <div className="relative">
-              <Button className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 magnetic-hover ripple-effect">
-                <Receipt className="w-6 h-6 text-white" />
-              </Button>
-              <Button className="absolute -top-16 -left-16 w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 magnetic-hover ripple-effect">
-                <Calendar className="w-6 h-6 text-white" />
-              </Button>
-              <Button className="absolute -top-16 -right-16 w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 magnetic-hover ripple-effect">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Background Particle Effects with Emotion State */}
+      {/* Background Particle Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {[...Array(emotionState === 'good' ? 30 : 10)].map((_, i) => (
+        {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className={`absolute w-1 h-1 ${
-              emotionState === 'good' 
-                ? (darkMode ? 'bg-primary' : 'bg-emerald-400') 
-                : emotionState === 'alert' 
-                ? (darkMode ? 'bg-red-400' : 'bg-red-300')
-                : (darkMode ? 'bg-yellow-400' : 'bg-yellow-300')
-            } rounded-full opacity-30 animate-float-coins`}
+            className={`absolute w-1 h-1 ${darkMode ? 'bg-primary' : 'bg-emerald-400'} rounded-full opacity-30 animate-float-coins`}
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -421,15 +330,6 @@ const Dashboard = () => {
           />
         ))}
       </div>
-
-      <ExpenseModal 
-        isOpen={isExpenseModalOpen} 
-        onClose={() => setIsExpenseModalOpen(false)} 
-      />
-      <VoiceExpenseModal 
-        isOpen={isVoiceModalOpen} 
-        onClose={() => setIsVoiceModalOpen(false)} 
-      />
     </div>
   );
 };
