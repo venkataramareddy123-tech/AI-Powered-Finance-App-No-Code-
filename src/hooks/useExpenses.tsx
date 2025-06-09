@@ -21,40 +21,51 @@ export const useExpenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const subscriptionRef = useRef<any>(null);
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchExpenses();
-      
-      // Only create subscription if we don't already have one
-      if (!subscriptionRef.current) {
-        const channelName = `expenses-changes-${user.id}`;
-        subscriptionRef.current = supabase
-          .channel(channelName)
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'expenses',
-            filter: `user_id=eq.${user.id}`
-          }, () => {
-            fetchExpenses();
-          })
-          .subscribe();
-      }
-
-      return () => {
-        if (subscriptionRef.current) {
-          supabase.removeChannel(subscriptionRef.current);
-          subscriptionRef.current = null;
-        }
-      };
-    } else {
-      // Clean up subscription if user logs out
+    const userId = user?.id;
+    
+    if (userId && userId !== currentUserIdRef.current) {
+      // Clean up previous subscription if user changed
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
+      
+      currentUserIdRef.current = userId;
+      fetchExpenses();
+      
+      // Create new subscription
+      const channelName = `expenses-changes-${userId}`;
+      subscriptionRef.current = supabase
+        .channel(channelName)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: `user_id=eq.${userId}`
+        }, () => {
+          fetchExpenses();
+        })
+        .subscribe();
+    } else if (!userId) {
+      // User logged out - clean up
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      currentUserIdRef.current = null;
+      setExpenses([]);
+      setLoading(false);
     }
+
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
   }, [user?.id]);
 
   const fetchExpenses = async () => {

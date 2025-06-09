@@ -20,40 +20,51 @@ export const useGoals = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const subscriptionRef = useRef<any>(null);
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchGoals();
-      
-      // Only create subscription if we don't already have one
-      if (!subscriptionRef.current) {
-        const channelName = `goals-changes-${user.id}`;
-        subscriptionRef.current = supabase
-          .channel(channelName)
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'goals',
-            filter: `user_id=eq.${user.id}`
-          }, () => {
-            fetchGoals();
-          })
-          .subscribe();
-      }
-
-      return () => {
-        if (subscriptionRef.current) {
-          supabase.removeChannel(subscriptionRef.current);
-          subscriptionRef.current = null;
-        }
-      };
-    } else {
-      // Clean up subscription if user logs out
+    const userId = user?.id;
+    
+    if (userId && userId !== currentUserIdRef.current) {
+      // Clean up previous subscription if user changed
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
+      
+      currentUserIdRef.current = userId;
+      fetchGoals();
+      
+      // Create new subscription
+      const channelName = `goals-changes-${userId}`;
+      subscriptionRef.current = supabase
+        .channel(channelName)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'goals',
+          filter: `user_id=eq.${userId}`
+        }, () => {
+          fetchGoals();
+        })
+        .subscribe();
+    } else if (!userId) {
+      // User logged out - clean up
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+      currentUserIdRef.current = null;
+      setGoals([]);
+      setLoading(false);
     }
+
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
   }, [user?.id]);
 
   const fetchGoals = async () => {
