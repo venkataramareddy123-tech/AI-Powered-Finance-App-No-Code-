@@ -23,9 +23,10 @@ export const useAISuggestions = () => {
     if (user) {
       fetchSuggestions();
       
-      // Set up real-time subscription
+      // Create a unique channel name to avoid conflicts
+      const channelName = `suggestions-changes-${user.id}`;
       const subscription = supabase
-        .channel('suggestions-changes')
+        .channel(channelName)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -37,10 +38,10 @@ export const useAISuggestions = () => {
         .subscribe();
 
       return () => {
-        subscription.unsubscribe();
+        supabase.removeChannel(subscription);
       };
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to prevent unnecessary re-subscriptions
 
   const fetchSuggestions = async () => {
     if (!user) return;

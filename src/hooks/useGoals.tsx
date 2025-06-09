@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface Goal {
   id: string;
@@ -24,9 +24,10 @@ export const useGoals = () => {
     if (user) {
       fetchGoals();
       
-      // Set up real-time subscription
+      // Create a unique channel name to avoid conflicts
+      const channelName = `goals-changes-${user.id}`;
       const subscription = supabase
-        .channel('goals-changes')
+        .channel(channelName)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
@@ -38,10 +39,10 @@ export const useGoals = () => {
         .subscribe();
 
       return () => {
-        subscription.unsubscribe();
+        supabase.removeChannel(subscription);
       };
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to prevent unnecessary re-subscriptions
 
   const fetchGoals = async () => {
     if (!user) return;
