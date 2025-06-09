@@ -1,28 +1,46 @@
 
 import React, { useState } from 'react';
-import { User, Settings, Moon, Bell, Download, CreditCard, Brain, LogOut } from 'lucide-react';
+import { User, Settings, Moon, Bell, Download, CreditCard, Brain, LogOut, Sun } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/components/ui/use-toast';
 
 const ProfileScreen = () => {
   const { user, signOut } = useAuth();
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => !document.documentElement.classList.contains('light-mode'));
   const [aiSuggestions, setAiSuggestions] = useState(true);
   const [notifications, setNotifications] = useState(true);
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive"
-      });
+    try {
+      await signOut();
+      console.log('User signed out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
     }
+  };
+
+  const handleDarkModeToggle = (checked: boolean) => {
+    setDarkMode(checked);
+    
+    if (checked) {
+      document.documentElement.classList.remove('light-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.documentElement.classList.add('light-mode');
+      document.body.classList.add('light-mode');
+    }
+  };
+
+  const handleDownloadReport = () => {
+    console.log('Downloading report...');
+    // Mock download functionality
+    const link = document.createElement('a');
+    link.download = 'financial-report.pdf';
+    link.href = 'data:text/plain;charset=utf-8,Financial Report - Sample Data';
+    link.click();
   };
 
   const accountCards = [
@@ -33,7 +51,7 @@ const ProfileScreen = () => {
 
   const userInitials = user?.user_metadata?.full_name 
     ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
-    : user?.email?.slice(0, 2).toUpperCase() || 'U';
+    : user?.email?.slice(0, 2).toUpperCase() || 'DU';
 
   return (
     <div className="min-h-screen bg-fintech-gradient p-4 space-y-6 pb-20">
@@ -49,9 +67,9 @@ const ProfileScreen = () => {
             </Avatar>
             <div className="flex-1">
               <h2 className="text-xl font-bold text-white">
-                {user?.user_metadata?.full_name || 'User'}
+                {user?.user_metadata?.full_name || 'Demo User'}
               </h2>
-              <p className="text-gray-400">{user?.email}</p>
+              <p className="text-gray-400">{user?.email || 'demo@example.com'}</p>
               <div className="mt-2 flex gap-4 text-sm">
                 <div>
                   <span className="text-primary font-bold">🔐</span>
@@ -73,19 +91,23 @@ const ProfileScreen = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+            <div className="flex items-center justify-between p-3 glass-card rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
               <div className="flex items-center gap-3">
-                <Moon className="w-5 h-5 text-white" />
+                {darkMode ? (
+                  <Moon className="w-5 h-5 text-white" />
+                ) : (
+                  <Sun className="w-5 h-5 text-white" />
+                )}
                 <span className="text-white font-medium">Dark Mode</span>
               </div>
               <Switch 
                 checked={darkMode} 
-                onCheckedChange={setDarkMode}
+                onCheckedChange={handleDarkModeToggle}
                 className="data-[state=checked]:bg-primary"
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+            <div className="flex items-center justify-between p-3 glass-card rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
               <div className="flex items-center gap-3">
                 <Brain className="w-5 h-5 text-white" />
                 <span className="text-white font-medium">AI Suggestions</span>
@@ -97,7 +119,7 @@ const ProfileScreen = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 glass-card rounded-lg">
+            <div className="flex items-center justify-between p-3 glass-card rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
               <div className="flex items-center gap-3">
                 <Bell className="w-5 h-5 text-white" />
                 <span className="text-white font-medium">Notifications</span>
@@ -123,7 +145,7 @@ const ProfileScreen = () => {
         <CardContent>
           <div className="space-y-3">
             {accountCards.map((account, index) => (
-              <div key={index} className="glass-card p-3 rounded-lg flex items-center gap-3">
+              <div key={index} className="glass-card p-3 rounded-lg flex items-center gap-3 hover:bg-white/10 transition-colors cursor-pointer">
                 <div className={`w-10 h-10 ${account.color} rounded-lg flex items-center justify-center`}>
                   <CreditCard className="w-5 h-5 text-white" />
                 </div>
@@ -146,7 +168,10 @@ const ProfileScreen = () => {
               <h3 className="text-white font-bold">Export Spending Report</h3>
               <p className="text-gray-400 text-sm">Download your complete financial data as PDF</p>
             </div>
-            <Button className="bg-primary hover:bg-primary/80 text-white font-bold px-6 py-2 rounded-xl">
+            <Button 
+              onClick={handleDownloadReport}
+              className="bg-primary hover:bg-primary/80 text-white font-bold px-6 py-2 rounded-xl transition-all duration-200 hover:scale-105"
+            >
               Download Report
             </Button>
           </div>
@@ -164,7 +189,7 @@ const ProfileScreen = () => {
             </div>
             <Button 
               onClick={handleSignOut}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-xl"
+              className="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-xl transition-all duration-200 hover:scale-105"
             >
               Sign Out
             </Button>

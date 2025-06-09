@@ -18,6 +18,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onGetStarted }) => {
     const subtitleTimer = setTimeout(() => setSubtitleVisible(true), 2500);
     const ctaTimer = setTimeout(() => setCtaVisible(true), 4000);
 
+    // Check initial theme
+    const isDark = !document.documentElement.classList.contains('light-mode');
+    setDarkMode(isDark);
+
     return () => {
       clearTimeout(titleTimer);
       clearTimeout(subtitleTimer);
@@ -36,8 +40,16 @@ const Welcome: React.FC<WelcomeProps> = ({ onGetStarted }) => {
   };
 
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('light-mode');
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    
+    if (newDarkMode) {
+      document.documentElement.classList.remove('light-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.documentElement.classList.add('light-mode');
+      document.body.classList.add('light-mode');
+    }
   };
 
   return (
@@ -45,7 +57,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onGetStarted }) => {
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
-        className="absolute top-6 right-6 w-14 h-14 rounded-full glass-card-intense flex items-center justify-center magnetic-hover transition-all duration-300 z-20"
+        className="absolute top-6 right-6 w-14 h-14 rounded-full glass-card-intense flex items-center justify-center magnetic-hover transition-all duration-300 z-20 hover:scale-110"
       >
         {darkMode ? (
           <Sun className="w-6 h-6 text-amber-400 animate-bounce-gentle" />

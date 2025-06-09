@@ -16,6 +16,11 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     { id: 'profile', label: 'Profile', icon: User },
   ];
 
+  const handleTabClick = (tabId: string) => {
+    console.log(`Switching to tab: ${tabId}`);
+    onTabChange(tabId);
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 px-4 py-2 z-50">
       <div className="flex justify-around items-center max-w-md mx-auto">
@@ -26,8 +31,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all duration-200 ${
+              onClick={() => handleTabClick(item.id)}
+              className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all duration-200 hover:scale-105 ${
                 isActive
                   ? 'bg-primary/20 text-primary scale-110'
                   : 'text-gray-400 hover:text-white hover:scale-105'
