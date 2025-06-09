@@ -2,15 +2,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface AISuggestion {
   id: string;
   user_id: string;
   suggestion_text: string;
-  type: 'saving' | 'budget' | 'expense' | 'goal' | 'alert';
-  emoji_reaction: string;
-  is_saved: boolean;
+  type: string; // Changed from union type to generic string to match database
+  emoji_reaction: string | null;
+  is_saved: boolean | null;
   generated_at: string;
 }
 
