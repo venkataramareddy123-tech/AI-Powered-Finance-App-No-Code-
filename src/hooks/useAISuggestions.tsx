@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ export interface AISuggestion {
   id: string;
   user_id: string;
   suggestion_text: string;
-  type: string; // Changed from union type to generic string to match database
+  type: string;
   emoji_reaction: string | null;
   is_saved: boolean | null;
   generated_at: string;
@@ -18,30 +18,42 @@ export const useAISuggestions = () => {
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     if (user) {
       fetchSuggestions();
       
-      // Create a unique channel name to avoid conflicts
-      const channelName = `suggestions-changes-${user.id}`;
-      const subscription = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'ai_suggestions',
-          filter: `user_id=eq.${user.id}`
-        }, () => {
-          fetchSuggestions();
-        })
-        .subscribe();
+      // Only create subscription if we don't already have one
+      if (!subscriptionRef.current) {
+        const channelName = `suggestions-changes-${user.id}`;
+        subscriptionRef.current = supabase
+          .channel(channelName)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'ai_suggestions',
+            filter: `user_id=eq.${user.id}`
+          }, () => {
+            fetchSuggestions();
+          })
+          .subscribe();
+      }
 
       return () => {
-        supabase.removeChannel(subscription);
+        if (subscriptionRef.current) {
+          supabase.removeChannel(subscriptionRef.current);
+          subscriptionRef.current = null;
+        }
       };
+    } else {
+      // Clean up subscription if user logs out
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     }
-  }, [user?.id]); // Only depend on user.id to prevent unnecessary re-subscriptions
+  }, [user?.id]);
 
   const fetchSuggestions = async () => {
     if (!user) return;

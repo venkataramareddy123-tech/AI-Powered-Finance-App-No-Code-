@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -19,30 +19,42 @@ export const useGoals = () => {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     if (user) {
       fetchGoals();
       
-      // Create a unique channel name to avoid conflicts
-      const channelName = `goals-changes-${user.id}`;
-      const subscription = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'goals',
-          filter: `user_id=eq.${user.id}`
-        }, () => {
-          fetchGoals();
-        })
-        .subscribe();
+      // Only create subscription if we don't already have one
+      if (!subscriptionRef.current) {
+        const channelName = `goals-changes-${user.id}`;
+        subscriptionRef.current = supabase
+          .channel(channelName)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'goals',
+            filter: `user_id=eq.${user.id}`
+          }, () => {
+            fetchGoals();
+          })
+          .subscribe();
+      }
 
       return () => {
-        supabase.removeChannel(subscription);
+        if (subscriptionRef.current) {
+          supabase.removeChannel(subscriptionRef.current);
+          subscriptionRef.current = null;
+        }
       };
+    } else {
+      // Clean up subscription if user logs out
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     }
-  }, [user?.id]); // Only depend on user.id to prevent unnecessary re-subscriptions
+  }, [user?.id]);
 
   const fetchGoals = async () => {
     if (!user) return;
