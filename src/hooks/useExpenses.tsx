@@ -36,8 +36,8 @@ export const useExpenses = () => {
       currentUserIdRef.current = userId;
       fetchExpenses();
       
-      // Create new subscription
-      const channelName = `expenses-changes-${userId}`;
+      // Create new subscription with unique channel name
+      const channelName = `expenses-changes-${userId}-${Date.now()}`;
       subscriptionRef.current = supabase
         .channel(channelName)
         .on('postgres_changes', {

@@ -34,8 +34,8 @@ export const useAISuggestions = () => {
       currentUserIdRef.current = userId;
       fetchSuggestions();
       
-      // Create new subscription
-      const channelName = `suggestions-changes-${userId}`;
+      // Create new subscription with unique channel name
+      const channelName = `suggestions-changes-${userId}-${Date.now()}`;
       subscriptionRef.current = supabase
         .channel(channelName)
         .on('postgres_changes', {
