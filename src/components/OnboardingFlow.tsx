@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, CreditCard, Target, DollarSign, Car, Home, Building, ShoppingBag, Coffee, Calendar, ChevronRight, Skip } from 'lucide-react';
+import { Camera, CreditCard, Target, DollarSign, Car, Home, Building, ShoppingBag, Coffee, Calendar, ChevronRight, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -398,7 +398,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
               onClick={handleSkip}
               className="flex-1 border-white/20 text-white hover:bg-white/10"
             >
-              <Skip className="w-4 h-4 mr-2" />
+              <ArrowRight className="w-4 h-4 mr-2" />
               Skip
             </Button>
             <Button

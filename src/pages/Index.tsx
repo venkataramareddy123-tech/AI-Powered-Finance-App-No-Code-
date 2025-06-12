@@ -1,4 +1,3 @@
-
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import AuthScreen from '@/components/AuthScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
@@ -29,7 +28,7 @@ const AppContent = () => {
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('onboarding_completed')
+          .select('onboarding_completed, budget_allocations, monthly_income')
           .eq('id', user.id)
           .single();
 
