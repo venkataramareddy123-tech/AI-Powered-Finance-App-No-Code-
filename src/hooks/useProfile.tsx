@@ -10,7 +10,7 @@ export interface UserProfile {
   full_name: string | null;
   avatar_url: string | null;
   monthly_income: number | null;
-  budget_allocations: Record<string, string> | null;
+  budget_allocations: Record<string, any> | null;
   onboarding_completed: boolean | null;
   created_at: string;
   updated_at: string;
@@ -42,8 +42,20 @@ export const useProfile = () => {
             description: error.message,
             variant: "destructive"
           });
-        } else {
-          setProfile(data);
+        } else if (data) {
+          // Transform the data to match our interface
+          const profileData: UserProfile = {
+            id: data.id,
+            email: data.email,
+            full_name: data.full_name,
+            avatar_url: data.avatar_url,
+            monthly_income: data.monthly_income,
+            budget_allocations: data.budget_allocations as Record<string, any>,
+            onboarding_completed: data.onboarding_completed,
+            created_at: data.created_at,
+            updated_at: data.updated_at
+          };
+          setProfile(profileData);
         }
       } catch (error: any) {
         console.error('Profile fetch error:', error);
