@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -120,7 +121,7 @@ const PaymentCards: React.FC = () => {
                   value={newCard.cardNumber}
                   onChange={(e) => setNewCard(prev => ({ ...prev, cardNumber: e.target.value }))}
                   placeholder="1234 5678 9012 3456"
-                  className="bg-white/10 border-white/20 text-white"
+                  className="bg-slate-800 border-white/20 text-white placeholder:text-gray-400 focus:border-primary"
                 />
               </div>
               
@@ -131,7 +132,7 @@ const PaymentCards: React.FC = () => {
                   value={newCard.cardHolderName}
                   onChange={(e) => setNewCard(prev => ({ ...prev, cardHolderName: e.target.value }))}
                   placeholder="John Doe"
-                  className="bg-white/10 border-white/20 text-white"
+                  className="bg-slate-800 border-white/20 text-white placeholder:text-gray-400 focus:border-primary"
                 />
               </div>
               
@@ -143,7 +144,7 @@ const PaymentCards: React.FC = () => {
                     value={newCard.expiryDate}
                     onChange={(e) => setNewCard(prev => ({ ...prev, expiryDate: e.target.value }))}
                     placeholder="MM/YY"
-                    className="bg-white/10 border-white/20 text-white"
+                    className="bg-slate-800 border-white/20 text-white placeholder:text-gray-400 focus:border-primary"
                   />
                 </div>
                 
@@ -153,11 +154,11 @@ const PaymentCards: React.FC = () => {
                     id="cardType"
                     value={newCard.cardType}
                     onChange={(e) => setNewCard(prev => ({ ...prev, cardType: e.target.value }))}
-                    className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2"
+                    className="w-full bg-slate-800 border border-white/20 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="Visa">Visa</option>
-                    <option value="Mastercard">Mastercard</option>
-                    <option value="American Express">American Express</option>
+                    <option value="Visa" className="bg-slate-800 text-white">Visa</option>
+                    <option value="Mastercard" className="bg-slate-800 text-white">Mastercard</option>
+                    <option value="American Express" className="bg-slate-800 text-white">American Express</option>
                   </select>
                 </div>
               </div>

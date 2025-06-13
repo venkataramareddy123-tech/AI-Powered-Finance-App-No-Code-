@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -33,13 +33,37 @@ const AppPreferences: React.FC<AppPreferencesProps> = ({ isOpen, onClose }) => {
     autoBackup: true
   });
 
+  // Load preferences from localStorage on component mount
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('appPreferences');
+    if (savedPreferences) {
+      try {
+        const parsed = JSON.parse(savedPreferences);
+        setPreferences(parsed);
+        console.log('Loaded preferences:', parsed);
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    }
+  }, []);
+
   const handleSave = () => {
-    // Here you would typically save to localStorage or backend
+    // Save to localStorage
     localStorage.setItem('appPreferences', JSON.stringify(preferences));
+    console.log('Preferences saved:', preferences);
+    
+    // Apply theme changes immediately
+    if (preferences.theme === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }
     
     toast({
       title: "Preferences saved",
-      description: "Your app preferences have been updated"
+      description: "Your app preferences have been updated and applied"
     });
     
     onClose();
@@ -120,11 +144,11 @@ const AppPreferences: React.FC<AppPreferencesProps> = ({ isOpen, onClose }) => {
             <select
               value={preferences.language}
               onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
-              className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2"
+              className="w-full bg-slate-800 border border-white/20 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="english">English</option>
-              <option value="hindi">हिंदी</option>
-              <option value="spanish">Español</option>
+              <option value="english" className="bg-slate-800 text-white">English</option>
+              <option value="hindi" className="bg-slate-800 text-white">हिंदी</option>
+              <option value="spanish" className="bg-slate-800 text-white">Español</option>
             </select>
           </div>
 
@@ -136,11 +160,11 @@ const AppPreferences: React.FC<AppPreferencesProps> = ({ isOpen, onClose }) => {
             <select
               value={preferences.currency}
               onChange={(e) => setPreferences(prev => ({ ...prev, currency: e.target.value }))}
-              className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2"
+              className="w-full bg-slate-800 border border-white/20 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="INR">₹ Indian Rupee</option>
-              <option value="USD">$ US Dollar</option>
-              <option value="EUR">€ Euro</option>
+              <option value="INR" className="bg-slate-800 text-white">₹ Indian Rupee</option>
+              <option value="USD" className="bg-slate-800 text-white">$ US Dollar</option>
+              <option value="EUR" className="bg-slate-800 text-white">€ Euro</option>
             </select>
           </div>
 

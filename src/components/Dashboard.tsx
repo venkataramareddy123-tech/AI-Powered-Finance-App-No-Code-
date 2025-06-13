@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PlusCircle, TrendingUp, AlertTriangle, Target, Mic, Brain, Zap, Eye, Sun, Moon, Calendar, Receipt, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,10 @@ import { useGoals } from '@/hooks/useGoals';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import ExpenseModal from './ExpenseModal';
 import VoiceExpenseModal from './VoiceExpenseModal';
+import VoiceChatbot from './VoiceChatbot';
+import { MessageSquare } from 'lucide-react';
 
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [aiActive, setAiActive] = useState(false);
@@ -18,6 +19,7 @@ const Dashboard = () => {
   const [darkMode, setDarkMode] = useState(true);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [dailyCapsuleIndex, setDailyCapsuleIndex] = useState(0);
+  const [showVoiceChatbot, setShowVoiceChatbot] = useState(false);
 
   // Backend hooks
   const { expenses, loading: expensesLoading } = useExpenses();
@@ -359,6 +361,21 @@ const Dashboard = () => {
           <PlusCircle className="w-8 h-8" />
         </Button>
       </div>
+
+      {/* Voice Chatbot FAB */}
+      <button
+        onClick={() => setShowVoiceChatbot(true)}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110 z-40 neon-glow"
+        aria-label="Open Voice Assistant"
+      >
+        <MessageSquare className="w-6 h-6 text-white" />
+      </button>
+
+      {/* Voice Chatbot Modal */}
+      <VoiceChatbot 
+        isOpen={showVoiceChatbot} 
+        onClose={() => setShowVoiceChatbot(false)} 
+      />
 
       {/* Background Particle Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
