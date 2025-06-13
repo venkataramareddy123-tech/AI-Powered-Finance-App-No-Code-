@@ -21,11 +21,14 @@ import {
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import PaymentCards from './PaymentCards';
+import AppPreferences from './AppPreferences';
 
 const ProfileSettings: React.FC = () => {
   const { user, signOut } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
   const [isEditing, setIsEditing] = useState(false);
+  const [showAppPreferences, setShowAppPreferences] = useState(false);
   const [editData, setEditData] = useState({
     full_name: '',
     monthly_income: ''
@@ -54,6 +57,10 @@ const ProfileSettings: React.FC = () => {
     
     if (!error) {
       setIsEditing(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been saved successfully"
+      });
     }
   };
 
@@ -183,6 +190,9 @@ const ProfileSettings: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Payment Cards */}
+      <PaymentCards />
+
       {/* Account Settings */}
       <Card className="glass-card border-white/20">
         <CardHeader>
@@ -215,7 +225,12 @@ const ProfileSettings: React.FC = () => {
                 <p className="text-sm text-gray-400">Theme, language, and display settings</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="border-white/20 text-white">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-white/20 text-white"
+              onClick={() => setShowAppPreferences(true)}
+            >
               Customize
             </Button>
           </div>
@@ -254,6 +269,12 @@ const ProfileSettings: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* App Preferences Modal */}
+      <AppPreferences 
+        isOpen={showAppPreferences}
+        onClose={() => setShowAppPreferences(false)}
+      />
     </div>
   );
 };

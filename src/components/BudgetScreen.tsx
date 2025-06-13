@@ -4,16 +4,17 @@ import { Target, TrendingDown, Lightbulb, Plus, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import BudgetEditor from './BudgetEditor';
 
 const BudgetScreen = () => {
   const { user } = useAuth();
   const { expenses } = useExpenses();
-  const [budgetData, setBudgetData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading: profileLoading } = useProfile();
+  const [showBudgetEditor, setShowBudgetEditor] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Get current month expenses
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -32,7 +33,7 @@ const BudgetScreen = () => {
       icon: '🍕',
       color: 'bg-orange-500',
       spent: spendingByCategory.food || 0,
-      budget: budgetData?.budget_allocations?.food ? parseFloat(budgetData.budget_allocations.food) : 5000,
+      budget: profile?.budget_allocations?.food ? parseFloat(profile.budget_allocations.food) : 5000,
     },
     {
       key: 'transport',
@@ -40,49 +41,41 @@ const BudgetScreen = () => {
       icon: '🚗',
       color: 'bg-purple-500', 
       spent: spendingByCategory.transport || 0,
-      budget: budgetData?.budget_allocations?.transport ? parseFloat(budgetData.budget_allocations.transport) : 3000,
+      budget: profile?.budget_allocations?.transport ? parseFloat(profile.budget_allocations.transport) : 3000,
     },
     {
-      key: 'shopping',
-      name: 'Shopping',
-      icon: '🛍️',
+      key: 'entertainment',
+      name: 'Entertainment',
+      icon: '🎬',
       color: 'bg-pink-500',
-      spent: spendingByCategory.shopping || 0,
-      budget: budgetData?.budget_allocations?.entertainment ? parseFloat(budgetData.budget_allocations.entertainment) : 4000,
+      spent: spendingByCategory.entertainment || 0,
+      budget: profile?.budget_allocations?.entertainment ? parseFloat(profile.budget_allocations.entertainment) : 4000,
     },
     {
-      key: 'bills',
-      name: 'Bills & Utilities',
-      icon: '💡',
+      key: 'rent',
+      name: 'Rent & Housing',
+      icon: '🏠',
       color: 'bg-blue-500',
-      spent: spendingByCategory.bills || 0,
-      budget: budgetData?.budget_allocations?.rent ? parseFloat(budgetData.budget_allocations.rent) : 3500,
+      spent: spendingByCategory.rent || 0,
+      budget: profile?.budget_allocations?.rent ? parseFloat(profile.budget_allocations.rent) : 3500,
     },
+    {
+      key: 'utilities',
+      name: 'Utilities',
+      icon: '💡',
+      color: 'bg-yellow-500',
+      spent: spendingByCategory.utilities || 0,
+      budget: profile?.budget_allocations?.utilities ? parseFloat(profile.budget_allocations.utilities) : 2000,
+    },
+    {
+      key: 'healthcare',
+      name: 'Healthcare',
+      icon: '🏥',
+      color: 'bg-red-500',
+      spent: spendingByCategory.healthcare || 0,
+      budget: profile?.budget_allocations?.healthcare ? parseFloat(profile.budget_allocations.healthcare) : 2500,
+    }
   ];
-
-  // Fetch user's budget data
-  useEffect(() => {
-    const fetchBudgetData = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('budget_allocations, monthly_income')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setBudgetData(data);
-      } catch (error) {
-        console.log('Error fetching budget data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBudgetData();
-  }, [user]);
 
   const getRiskLevel = (spent: number, budget: number) => {
     const percentage = (spent / budget) * 100;
@@ -100,7 +93,11 @@ const BudgetScreen = () => {
     }
   };
 
-  if (loading) {
+  const handleBudgetSaved = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="animate-spin">
@@ -124,7 +121,7 @@ const BudgetScreen = () => {
       </Card>
 
       {/* Budget Overview */}
-      {!budgetData?.budget_allocations && (
+      {!profile?.budget_allocations && (
         <Card className="glass-card border-yellow-500/30 animate-slide-up">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
@@ -134,7 +131,10 @@ const BudgetScreen = () => {
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">Set Up Your Budget</h3>
                 <p className="text-gray-400 mb-4">Create spending limits to track your financial goals</p>
-                <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600">
+                <Button 
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+                  onClick={() => setShowBudgetEditor(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Budget
                 </Button>
@@ -152,7 +152,12 @@ const BudgetScreen = () => {
               <TrendingDown className="w-5 h-5 text-cyan-400" />
               Monthly Budget Breakdown
             </CardTitle>
-            <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-white/20 text-white hover:bg-white/10"
+              onClick={() => setShowBudgetEditor(true)}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </Button>
@@ -167,7 +172,7 @@ const BudgetScreen = () => {
               
               return (
                 <div
-                  key={category.key}
+                  key={`${category.key}-${refreshKey}`}
                   className="glass-card p-4 rounded-xl animate-slide-up hover:scale-[1.02] transition-transform"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
@@ -195,18 +200,6 @@ const BudgetScreen = () => {
                           ₹{Math.abs(remaining).toLocaleString()} {remaining >= 0 ? 'remaining' : 'over budget'}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Budget Slider */}
-                    <div className="space-y-2">
-                      <p className="text-white text-sm font-medium">Adjust Budget</p>
-                      <Slider
-                        defaultValue={[category.budget]}
-                        max={20000}
-                        min={1000}
-                        step={500}
-                        className="w-full"
-                      />
                     </div>
                   </div>
                 </div>
@@ -248,6 +241,13 @@ const BudgetScreen = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Budget Editor Modal */}
+      <BudgetEditor
+        isOpen={showBudgetEditor}
+        onClose={() => setShowBudgetEditor(false)}
+        onSave={handleBudgetSaved}
+      />
     </div>
   );
 };
