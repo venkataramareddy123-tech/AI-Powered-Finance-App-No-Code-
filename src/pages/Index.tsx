@@ -1,3 +1,4 @@
+
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import AuthScreen from '@/components/AuthScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
@@ -30,13 +31,28 @@ const AppContent = () => {
           .from('profiles')
           .select('onboarding_completed, budget_allocations, monthly_income')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.log('Profile check error:', error);
           setShowOnboarding(true);
+        } else if (!profile) {
+          // Profile doesn't exist, create it
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: user.id,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || null,
+              onboarding_completed: false
+            }]);
+          
+          if (insertError) {
+            console.log('Profile creation error:', insertError);
+          }
+          setShowOnboarding(true);
         } else {
-          setShowOnboarding(!profile?.onboarding_completed);
+          setShowOnboarding(!profile.onboarding_completed);
         }
       } catch (error) {
         console.log('Onboarding check error:', error);
