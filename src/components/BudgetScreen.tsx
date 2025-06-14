@@ -12,9 +12,8 @@ import BudgetEditor from './BudgetEditor';
 const BudgetScreen = () => {
   const { user } = useAuth();
   const { expenses } = useExpenses();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const [showBudgetEditor, setShowBudgetEditor] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Get current month expenses
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -33,7 +32,7 @@ const BudgetScreen = () => {
       icon: '🍕',
       color: 'bg-orange-500',
       spent: spendingByCategory.food || 0,
-      budget: profile?.budget_allocations?.food ? parseFloat(profile.budget_allocations.food) : 5000,
+      budget: profile?.budget_allocations?.food || 5000,
     },
     {
       key: 'transport',
@@ -41,7 +40,7 @@ const BudgetScreen = () => {
       icon: '🚗',
       color: 'bg-purple-500', 
       spent: spendingByCategory.transport || 0,
-      budget: profile?.budget_allocations?.transport ? parseFloat(profile.budget_allocations.transport) : 3000,
+      budget: profile?.budget_allocations?.transport || 3000,
     },
     {
       key: 'entertainment',
@@ -49,7 +48,7 @@ const BudgetScreen = () => {
       icon: '🎬',
       color: 'bg-pink-500',
       spent: spendingByCategory.entertainment || 0,
-      budget: profile?.budget_allocations?.entertainment ? parseFloat(profile.budget_allocations.entertainment) : 4000,
+      budget: profile?.budget_allocations?.entertainment || 4000,
     },
     {
       key: 'rent',
@@ -57,7 +56,7 @@ const BudgetScreen = () => {
       icon: '🏠',
       color: 'bg-blue-500',
       spent: spendingByCategory.rent || 0,
-      budget: profile?.budget_allocations?.rent ? parseFloat(profile.budget_allocations.rent) : 3500,
+      budget: profile?.budget_allocations?.rent || 3500,
     },
     {
       key: 'utilities',
@@ -65,7 +64,7 @@ const BudgetScreen = () => {
       icon: '💡',
       color: 'bg-yellow-500',
       spent: spendingByCategory.utilities || 0,
-      budget: profile?.budget_allocations?.utilities ? parseFloat(profile.budget_allocations.utilities) : 2000,
+      budget: profile?.budget_allocations?.utilities || 2000,
     },
     {
       key: 'healthcare',
@@ -73,7 +72,7 @@ const BudgetScreen = () => {
       icon: '🏥',
       color: 'bg-red-500',
       spent: spendingByCategory.healthcare || 0,
-      budget: profile?.budget_allocations?.healthcare ? parseFloat(profile.budget_allocations.healthcare) : 2500,
+      budget: profile?.budget_allocations?.healthcare || 2500,
     }
   ];
 
@@ -94,7 +93,7 @@ const BudgetScreen = () => {
   };
 
   const handleBudgetSaved = () => {
-    setRefreshKey(prev => prev + 1);
+    refetchProfile();
   };
 
   if (profileLoading) {
@@ -172,7 +171,7 @@ const BudgetScreen = () => {
               
               return (
                 <div
-                  key={`${category.key}-${refreshKey}`}
+                  key={category.key}
                   className="glass-card p-4 rounded-xl animate-slide-up hover:scale-[1.02] transition-transform"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >

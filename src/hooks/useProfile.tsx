@@ -2,101 +2,83 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
 
-export interface UserProfile {
+export interface Profile {
   id: string;
-  email: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  monthly_income: number | null;
-  budget_allocations: Record<string, any> | null;
-  onboarding_completed: boolean | null;
+  email?: string;
+  full_name?: string;
+  monthly_income?: number;
+  budget_allocations?: {
+    food?: number;
+    transport?: number;
+    entertainment?: number;
+    rent?: number;
+    utilities?: number;
+    healthcare?: number;
+    shopping?: number;
+    other?: number;
+  };
+  onboarding_completed?: boolean;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
 
 export const useProfile = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async () => {
+    if (!user) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Profile fetch error:', error);
-          toast({
-            title: "Error fetching profile",
-            description: error.message,
-            variant: "destructive"
-          });
-        } else if (data) {
-          // Transform the data to match our interface
-          const profileData: UserProfile = {
-            id: data.id,
-            email: data.email,
-            full_name: data.full_name,
-            avatar_url: data.avatar_url,
-            monthly_income: data.monthly_income,
-            budget_allocations: data.budget_allocations as Record<string, any>,
-            onboarding_completed: data.onboarding_completed,
-            created_at: data.created_at,
-            updated_at: data.updated_at
-          };
-          setProfile(profileData);
-        }
-      } catch (error: any) {
-        console.error('Profile fetch error:', error);
-        toast({
-          title: "Error fetching profile",
-          description: error.message,
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProfile();
-  }, [user]);
+  }, [user?.id]);
 
-  const updateProfile = async (updates: Partial<UserProfile>) => {
+  const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: 'User not authenticated' };
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-
-      // Update local state
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
       
-      toast({
-        title: "Profile updated successfully"
-      });
-      
+      setProfile(data);
       return { error: null };
     } catch (error: any) {
-      toast({
-        title: "Error updating profile",
-        description: error.message,
-        variant: "destructive"
-      });
+      console.error('Error updating profile:', error);
       return { error };
     }
   };
@@ -104,6 +86,7 @@ export const useProfile = () => {
   return {
     profile,
     loading,
-    updateProfile
+    updateProfile,
+    refetch: fetchProfile
   };
 };
