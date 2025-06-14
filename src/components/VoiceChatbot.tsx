@@ -1,18 +1,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Mic, 
-  MicOff, 
-  Send, 
-  X, 
-  Volume2,
-  VolumeX,
-  MessageCircle
-} from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Mic, MicOff, Send, X, Volume2, VolumeX } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface VoiceChatbotProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
 interface Message {
   id: string;
@@ -21,76 +18,36 @@ interface Message {
   timestamp: Date;
 }
 
-interface VoiceChatbotProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-// Declare types for Speech Recognition API
-declare global {
-  interface Window {
-    SpeechRecognition?: typeof SpeechRecognition;
-    webkitSpeechRecognition?: typeof SpeechRecognition;
-  }
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-}
-
 const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello! I\'m your AI financial assistant. I can help you with budgeting, expense tracking, and financial advice. How can I assist you today?',
-      isUser: false,
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(true);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize Speech Recognition
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      synthRef.current = window.speechSynthesis;
+      
+      // Initialize Speech Recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
         recognitionRef.current.lang = 'en-US';
 
-        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           setInputText(transcript);
           setIsListening(false);
         };
 
-        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error:', event.error);
+        recognitionRef.current.onerror = () => {
           setIsListening(false);
         };
 
@@ -98,11 +55,16 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
           setIsListening(false);
         };
       }
+    }
 
-      // Initialize Speech Synthesis
-      if ('speechSynthesis' in window) {
-        synthRef.current = window.speechSynthesis;
-      }
+    // Add initial greeting
+    if (messages.length === 0) {
+      setMessages([{
+        id: '1',
+        text: "Hi! I'm your AI financial assistant. I can help you with budgeting, expense tracking, and financial advice. How can I assist you today?",
+        isUser: false,
+        timestamp: new Date()
+      }]);
     }
 
     return () => {
@@ -114,14 +76,6 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
       }
     };
   }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
@@ -138,7 +92,8 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
   };
 
   const speak = (text: string) => {
-    if (synthRef.current && !isSpeaking) {
+    if (synthRef.current && speechEnabled) {
+      synthRef.current.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.9;
       utterance.pitch = 1;
@@ -147,7 +102,7 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
-
+      
       synthRef.current.speak(utterance);
     }
   };
@@ -160,7 +115,7 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
   };
 
   const sendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -174,40 +129,30 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/functions/v1/gemini-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputText,
-          context: 'financial_assistant'
-        })
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: { message: inputText }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
+      if (error) throw error;
 
-      const data = await response.json();
-      
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response || 'I apologize, but I encountered an error. Please try again.',
+        text: data.response,
         isUser: false,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
       
-      // Auto-speak the response
-      speak(botMessage.text);
-      
+      // Speak the response if speech is enabled
+      if (speechEnabled) {
+        speak(data.response);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'I apologize, but I\'m having trouble connecting right now. Please try again later.',
+        text: "Sorry, I'm having trouble connecting right now. Please try again later.",
         isUser: false,
         timestamp: new Date()
       };
@@ -228,113 +173,113 @@ const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="glass-card border-white/20 w-full max-w-2xl h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-white/20">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-lg font-semibold text-white">AI Financial Assistant</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSpeaking && (
+      <Card className="w-full max-w-md h-[80vh] flex flex-col glass-card border-primary/30">
+        <CardHeader className="flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              🤖 AI Financial Assistant
+            </CardTitle>
+            <div className="flex items-center gap-2">
               <Button
+                onClick={() => setSpeechEnabled(!speechEnabled)}
                 variant="ghost"
                 size="sm"
-                onClick={stopSpeaking}
-                className="text-yellow-400 hover:bg-yellow-400/10"
+                className="text-gray-400 hover:text-white"
               >
-                <VolumeX className="w-4 h-4" />
+                {speechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        </div>
+        </CardHeader>
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+        <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-white/20">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
+                  className={`max-w-[80%] p-3 rounded-lg text-sm ${
                     message.isUser
-                      ? 'bg-emerald-500 text-white'
-                      : 'glass-card border-white/20 text-white'
+                      ? 'bg-primary text-black'
+                      : 'glass-card text-white border border-white/20'
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
+                  {message.text}
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="glass-card border-white/20 text-white p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                <div className="glass-card p-3 rounded-lg border border-white/20">
+                  <div className="flex items-center gap-2 text-white">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
 
-        <div className="p-4 border-t border-white/20">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={isListening ? stopListening : startListening}
-              className={`border-white/20 ${
-                isListening 
-                  ? 'text-red-400 hover:bg-red-400/10' 
-                  : 'text-white hover:bg-white/10'
-              }`}
-              disabled={isLoading}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </Button>
-            
-            <Input
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message or use voice..."
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-              disabled={isLoading}
-            />
-            
-            <Button
-              onClick={sendMessage}
-              disabled={!inputText.trim() || isLoading}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          {isListening && (
-            <div className="flex items-center justify-center mt-2">
-              <div className="flex items-center gap-2 text-red-400">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                <span className="text-sm">Listening...</span>
+          {/* Input Area */}
+          <div className="flex-shrink-0 space-y-3">
+            {isSpeaking && (
+              <div className="flex items-center justify-between glass-card p-2 rounded-lg border border-white/20">
+                <span className="text-white text-sm">🗣️ Speaking...</span>
+                <Button
+                  onClick={stopSpeaking}
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-400 hover:text-red-300"
+                >
+                  Stop
+                </Button>
               </div>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about your finances..."
+                  className="glass-card border-white/20 text-white placeholder:text-gray-400 pr-12"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={isListening ? stopListening : startListening}
+                  variant="ghost"
+                  size="sm"
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 p-0 ${
+                    isListening ? 'text-red-400 animate-pulse' : 'text-gray-400 hover:text-white'
+                  }`}
+                  disabled={isLoading}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+              </div>
+              <Button
+                onClick={sendMessage}
+                disabled={!inputText.trim() || isLoading}
+                className="bg-gradient-to-r from-primary to-accent text-black hover:opacity-80 w-10 h-10 p-0"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

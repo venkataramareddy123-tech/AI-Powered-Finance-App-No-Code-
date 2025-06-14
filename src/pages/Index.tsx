@@ -1,11 +1,10 @@
-
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import AuthScreen from '@/components/AuthScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
-import Dashboard from '@/components/Dashboard';
+import EnhancedDashboard from '@/components/EnhancedDashboard';
 import TransactionHistory from '@/components/TransactionHistory';
 import BudgetScreen from '@/components/BudgetScreen';
-import InsightsScreen from '@/components/InsightsScreen';
+import EnhancedInsights from '@/components/EnhancedInsights';
 import ProfileScreen from '@/components/ProfileScreen';
 import Navigation from '@/components/Navigation';
 import { useState, useEffect } from 'react';
@@ -90,17 +89,17 @@ const AppContent = () => {
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <EnhancedDashboard />;
       case 'transactions':
         return <TransactionHistory />;
       case 'budget':
         return <BudgetScreen />;
       case 'insights':
-        return <InsightsScreen />;
+        return <EnhancedInsights />;
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <Dashboard />;
+        return <EnhancedDashboard />;
     }
   };
 
