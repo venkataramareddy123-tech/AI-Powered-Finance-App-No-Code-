@@ -19,53 +19,59 @@ export const useGoals = () => {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const subscriptionRef = useRef<any>(null);
-  const currentUserIdRef = useRef<string | null>(null);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    const userId = user?.id;
-    
-    if (userId && userId !== currentUserIdRef.current) {
-      // Clean up previous subscription if user changed
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      
-      currentUserIdRef.current = userId;
-      fetchGoals();
-      
-      // Create new subscription with unique channel name
-      const channelName = `goals-changes-${userId}-${Date.now()}`;
-      subscriptionRef.current = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'goals',
-          filter: `user_id=eq.${userId}`
-        }, () => {
-          fetchGoals();
-        })
-        .subscribe();
-    } else if (!userId) {
-      // User logged out - clean up
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      currentUserIdRef.current = null;
+    if (!user?.id) {
       setGoals([]);
       setLoading(false);
+      return;
     }
 
+    fetchGoals();
+    setupRealtimeSubscription();
+
     return () => {
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
+      cleanupSubscription();
     };
   }, [user?.id]);
+
+  const cleanupSubscription = () => {
+    if (channelRef.current && isSubscribedRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.log('Error removing channel:', error);
+      }
+      channelRef.current = null;
+      isSubscribedRef.current = false;
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!user?.id || isSubscribedRef.current) return;
+
+    cleanupSubscription(); // Ensure cleanup before creating new subscription
+
+    const channelName = `goals-${user.id}-${Date.now()}`;
+    channelRef.current = supabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'goals',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Goals change:', payload);
+        fetchGoals();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
+      });
+  };
 
   const fetchGoals = async () => {
     if (!user) return;
@@ -81,6 +87,7 @@ export const useGoals = () => {
       if (error) throw error;
       setGoals(data || []);
     } catch (error: any) {
+      console.error('Error fetching goals:', error);
       toast({
         title: "Error fetching goals",
         description: error.message,

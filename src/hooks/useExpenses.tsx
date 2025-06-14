@@ -20,53 +20,59 @@ export const useExpenses = () => {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const subscriptionRef = useRef<any>(null);
-  const currentUserIdRef = useRef<string | null>(null);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    const userId = user?.id;
-    
-    if (userId && userId !== currentUserIdRef.current) {
-      // Clean up previous subscription if user changed
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      
-      currentUserIdRef.current = userId;
-      fetchExpenses();
-      
-      // Create new subscription with unique channel name
-      const channelName = `expenses-changes-${userId}-${Date.now()}`;
-      subscriptionRef.current = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: `user_id=eq.${userId}`
-        }, () => {
-          fetchExpenses();
-        })
-        .subscribe();
-    } else if (!userId) {
-      // User logged out - clean up
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      currentUserIdRef.current = null;
+    if (!user?.id) {
       setExpenses([]);
       setLoading(false);
+      return;
     }
 
+    fetchExpenses();
+    setupRealtimeSubscription();
+
     return () => {
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
+      cleanupSubscription();
     };
   }, [user?.id]);
+
+  const cleanupSubscription = () => {
+    if (channelRef.current && isSubscribedRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.log('Error removing channel:', error);
+      }
+      channelRef.current = null;
+      isSubscribedRef.current = false;
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!user?.id || isSubscribedRef.current) return;
+
+    cleanupSubscription(); // Ensure cleanup before creating new subscription
+
+    const channelName = `expenses-${user.id}-${Date.now()}`;
+    channelRef.current = supabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'expenses',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Expenses change:', payload);
+        fetchExpenses();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
+      });
+  };
 
   const fetchExpenses = async () => {
     if (!user) return;
@@ -82,6 +88,7 @@ export const useExpenses = () => {
       if (error) throw error;
       setExpenses(data || []);
     } catch (error: any) {
+      console.error('Error fetching expenses:', error);
       toast({
         title: "Error fetching expenses",
         description: error.message,

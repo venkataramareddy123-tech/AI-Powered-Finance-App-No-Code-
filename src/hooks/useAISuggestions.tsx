@@ -18,53 +18,59 @@ export const useAISuggestions = () => {
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const subscriptionRef = useRef<any>(null);
-  const currentUserIdRef = useRef<string | null>(null);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    const userId = user?.id;
-    
-    if (userId && userId !== currentUserIdRef.current) {
-      // Clean up previous subscription if user changed
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      
-      currentUserIdRef.current = userId;
-      fetchSuggestions();
-      
-      // Create new subscription with unique channel name
-      const channelName = `suggestions-changes-${userId}-${Date.now()}`;
-      subscriptionRef.current = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'ai_suggestions',
-          filter: `user_id=eq.${userId}`
-        }, () => {
-          fetchSuggestions();
-        })
-        .subscribe();
-    } else if (!userId) {
-      // User logged out - clean up
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
-      currentUserIdRef.current = null;
+    if (!user?.id) {
       setSuggestions([]);
       setLoading(false);
+      return;
     }
 
+    fetchSuggestions();
+    setupRealtimeSubscription();
+
     return () => {
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
-      }
+      cleanupSubscription();
     };
   }, [user?.id]);
+
+  const cleanupSubscription = () => {
+    if (channelRef.current && isSubscribedRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.log('Error removing channel:', error);
+      }
+      channelRef.current = null;
+      isSubscribedRef.current = false;
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!user?.id || isSubscribedRef.current) return;
+
+    cleanupSubscription(); // Ensure cleanup before creating new subscription
+
+    const channelName = `suggestions-${user.id}-${Date.now()}`;
+    channelRef.current = supabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'ai_suggestions',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('AI Suggestions change:', payload);
+        fetchSuggestions();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
+      });
+  };
 
   const fetchSuggestions = async () => {
     if (!user) return;
@@ -81,6 +87,7 @@ export const useAISuggestions = () => {
       if (error) throw error;
       setSuggestions(data || []);
     } catch (error: any) {
+      console.error('Error fetching suggestions:', error);
       toast({
         title: "Error fetching suggestions",
         description: error.message,
