@@ -19,7 +19,6 @@ export const useAISuggestions = () => {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) {
@@ -37,23 +36,16 @@ export const useAISuggestions = () => {
   }, [user?.id]);
 
   const cleanupSubscription = () => {
-    if (channelRef.current && isSubscribedRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.log('Error removing channel:', error);
-      }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
       channelRef.current = null;
-      isSubscribedRef.current = false;
     }
   };
 
   const setupRealtimeSubscription = () => {
-    if (!user?.id || isSubscribedRef.current) return;
+    if (!user?.id || channelRef.current) return;
 
-    cleanupSubscription(); // Ensure cleanup before creating new subscription
-
-    const channelName = `suggestions-${user.id}-${Date.now()}`;
+    const channelName = `suggestions-${user.id}-${Math.random()}`;
     channelRef.current = supabase
       .channel(channelName)
       .on('postgres_changes', {
@@ -65,11 +57,7 @@ export const useAISuggestions = () => {
         console.log('AI Suggestions change:', payload);
         fetchSuggestions();
       })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-        }
-      });
+      .subscribe();
   };
 
   const fetchSuggestions = async () => {

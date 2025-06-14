@@ -20,7 +20,6 @@ export const useGoals = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) {
@@ -38,23 +37,16 @@ export const useGoals = () => {
   }, [user?.id]);
 
   const cleanupSubscription = () => {
-    if (channelRef.current && isSubscribedRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.log('Error removing channel:', error);
-      }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
       channelRef.current = null;
-      isSubscribedRef.current = false;
     }
   };
 
   const setupRealtimeSubscription = () => {
-    if (!user?.id || isSubscribedRef.current) return;
+    if (!user?.id || channelRef.current) return;
 
-    cleanupSubscription(); // Ensure cleanup before creating new subscription
-
-    const channelName = `goals-${user.id}-${Date.now()}`;
+    const channelName = `goals-${user.id}-${Math.random()}`;
     channelRef.current = supabase
       .channel(channelName)
       .on('postgres_changes', {
@@ -66,11 +58,7 @@ export const useGoals = () => {
         console.log('Goals change:', payload);
         fetchGoals();
       })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-        }
-      });
+      .subscribe();
   };
 
   const fetchGoals = async () => {
