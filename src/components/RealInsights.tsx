@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,16 +50,16 @@ const RealInsights: React.FC = () => {
 
   const topCategory = Object.entries(categoryTotals).sort(([,a], [,b]) => b - a)[0];
 
-  // Budget analysis
+  // Budget analysis - fix the type conversion issue
   const budgetAllocations = profile?.budget_allocations || {};
-  const budgetInsights = Object.entries(budgetAllocations).map(([category, budgetStr]) => {
-    const budget = parseFloat(budgetStr as string) || 0;
+  const budgetInsights = Object.entries(budgetAllocations).map(([category, budget]) => {
+    const budgetAmount = typeof budget === 'number' ? budget : 0;
     const spent = categoryTotals[category] || 0;
-    const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+    const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
     
     return {
       category,
-      budget,
+      budget: budgetAmount,
       spent,
       percentage,
       status: percentage > 100 ? 'over' : percentage > 80 ? 'warning' : 'good'

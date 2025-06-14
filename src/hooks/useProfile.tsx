@@ -48,7 +48,14 @@ export const useProfile = () => {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        setProfile(data);
+        // Properly handle the budget_allocations type conversion
+        const profileData: Profile = {
+          ...data,
+          budget_allocations: typeof data.budget_allocations === 'object' && data.budget_allocations !== null 
+            ? data.budget_allocations as Profile['budget_allocations']
+            : undefined
+        };
+        setProfile(profileData);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -75,7 +82,14 @@ export const useProfile = () => {
 
       if (error) throw error;
       
-      setProfile(data);
+      // Properly handle the response data type conversion
+      const profileData: Profile = {
+        ...data,
+        budget_allocations: typeof data.budget_allocations === 'object' && data.budget_allocations !== null 
+          ? data.budget_allocations as Profile['budget_allocations']
+          : undefined
+      };
+      setProfile(profileData);
       return { error: null };
     } catch (error: any) {
       console.error('Error updating profile:', error);
