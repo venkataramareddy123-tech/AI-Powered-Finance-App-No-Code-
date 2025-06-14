@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { PlusCircle, TrendingUp, AlertTriangle, Target, Mic, Brain, Zap, Eye, Sun, Moon, Calendar, Receipt, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
